@@ -63,13 +63,7 @@ const
 ##
 
 template LIBNOTMUCH_CHECK_VERSION*(major, minor, micro: untyped): untyped =
-  (
-    ( LIBNOTMUCH_MAJOR_VERSION > (major) )
-      or
-    ( LIBNOTMUCH_MAJOR_VERSION == (major) and LIBNOTMUCH_MINOR_VERSION > (minor) )
-      or
-    ( LIBNOTMUCH_MAJOR_VERSION == (major) and LIBNOTMUCH_MINOR_VERSION == (minor) and LIBNOTMUCH_MICRO_VERSION >= (micro) )
-  )
+  ( ( LIBNOTMUCH_MAJOR_VERSION > (major) ) or ( LIBNOTMUCH_MAJOR_VERSION == (major) and LIBNOTMUCH_MINOR_VERSION > (minor) ) or ( LIBNOTMUCH_MAJOR_VERSION == (major) and LIBNOTMUCH_MINOR_VERSION == (minor) and LIBNOTMUCH_MICRO_VERSION >= (micro) ) )
 
 ## *
 ##  Notmuch boolean type.
