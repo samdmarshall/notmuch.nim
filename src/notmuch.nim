@@ -25,6 +25,11 @@
 ##  @{
 ##
 
+{.push header: "notmuch.h".}
+
+type
+  time_t = int64
+
 ##
 ##  The library version number.  This must agree with the soname
 ##  version in Makefile.local.
@@ -58,12 +63,13 @@ const
 ##
 
 template LIBNOTMUCH_CHECK_VERSION*(major, minor, micro: untyped): untyped =
-  (LIBNOTMUCH_MAJOR_VERSION > (major) or
-      (LIBNOTMUCH_MAJOR_VERSION == (major) and
-      LIBNOTMUCH_MINOR_VERSION > (minor)) or
-      (LIBNOTMUCH_MAJOR_VERSION == (major) and
-      LIBNOTMUCH_MINOR_VERSION == (minor) and
-      LIBNOTMUCH_MICRO_VERSION >= (micro)))
+  (
+    ( LIBNOTMUCH_MAJOR_VERSION > (major) )
+      or
+    ( LIBNOTMUCH_MAJOR_VERSION == (major) and LIBNOTMUCH_MINOR_VERSION > (minor) )
+      or
+    ( LIBNOTMUCH_MAJOR_VERSION == (major) and LIBNOTMUCH_MINOR_VERSION == (minor) and LIBNOTMUCH_MICRO_VERSION >= (micro) )
+  )
 
 ## *
 ##  Notmuch boolean type.
@@ -79,88 +85,108 @@ type
 ##  completed without error. Any other value indicates an error.
 ##
 
-type                          ## *
-    ##  No error occurred.
-    ##
+type
   notmuch_status_t* {.size: sizeof(cint).} = enum
-    NOTMUCH_STATUS_SUCCESS = 0, ## *
-                             ##  Out of memory.
-                             ##
-    NOTMUCH_STATUS_OUT_OF_MEMORY, ## *
-                                 ##  An attempt was made to write to a database opened in read-only
-                                 ##  mode.
-                                 ##
-    NOTMUCH_STATUS_READ_ONLY_DATABASE, ## *
-                                      ##  A Xapian exception occurred.
-                                      ##
-                                      ##  @todo We don't really want to expose this lame XAPIAN_EXCEPTION
-                                      ##  value. Instead we should map to things like DATABASE_LOCKED or
-                                      ##  whatever.
-                                      ##
-    NOTMUCH_STATUS_XAPIAN_EXCEPTION, ## *
-                                    ##  An error occurred trying to read or write to a file (this could
-                                    ##  be file not found, permission denied, etc.)
-                                    ##
-    NOTMUCH_STATUS_FILE_ERROR, ## *
-                              ##  A file was presented that doesn't appear to be an email
-                              ##  message.
-                              ##
-    NOTMUCH_STATUS_FILE_NOT_EMAIL, ## *
-                                  ##  A file contains a message ID that is identical to a message
-                                  ##  already in the database.
-                                  ##
-    NOTMUCH_STATUS_DUPLICATE_MESSAGE_ID, ## *
-                                        ##  The user erroneously passed a NULL pointer to a notmuch
-                                        ##  function.
-                                        ##
-    NOTMUCH_STATUS_NULL_POINTER, ## *
-                                ##  A tag value is too long (exceeds NOTMUCH_TAG_MAX).
-                                ##
-    NOTMUCH_STATUS_TAG_TOO_LONG, ## *
-                                ##  The notmuch_message_thaw function has been called more times
-                                ##  than notmuch_message_freeze.
-                                ##
-    NOTMUCH_STATUS_UNBALANCED_FREEZE_THAW, ## *
-                                          ##  notmuch_database_end_atomic has been called more times than
-                                          ##  notmuch_database_begin_atomic.
-                                          ##
-    NOTMUCH_STATUS_UNBALANCED_ATOMIC, ## *
-                                     ##  The operation is not supported.
-                                     ##
-    NOTMUCH_STATUS_UNSUPPORTED_OPERATION, ## *
-                                         ##  The operation requires a database upgrade.
-                                         ##
-    NOTMUCH_STATUS_UPGRADE_REQUIRED, ## *
-                                    ##  There is a problem with the proposed path, e.g. a relative path
-                                    ##  passed to a function expecting an absolute path.
-                                    ##
-    NOTMUCH_STATUS_PATH_ERROR, ## *
-                              ##  The requested operation was ignored. Depending on the function,
-                              ##  this may not be an actual error.
-                              ##
-    NOTMUCH_STATUS_IGNORED, ## *
-                           ##  One of the arguments violates the preconditions for the
-                           ##  function, in a way not covered by a more specific argument.
-                           ##
-    NOTMUCH_STATUS_ILLEGAL_ARGUMENT, ## *
-                                    ##  A MIME object claimed to have cryptographic protection which
-                                    ##  notmuch tried to handle, but the protocol was not specified in
-                                    ##  an intelligible way.
-                                    ##
-    NOTMUCH_STATUS_MALFORMED_CRYPTO_PROTOCOL, ## *
-                                             ##  Notmuch attempted to do crypto processing, but could not
-                                             ##  initialize the engine needed to do so.
-                                             ##
-    NOTMUCH_STATUS_FAILED_CRYPTO_CONTEXT_CREATION, ## *
-                                                  ##  A MIME object claimed to have cryptographic protection, and
-                                                  ##  notmuch attempted to process it, but the specific protocol was
-                                                  ##  something that notmuch doesn't know how to handle.
-                                                  ##
+    NOTMUCH_STATUS_SUCCESS = 0,             ## *
+                                            ##  No error occurred.
+                                            ##
+
+
+    NOTMUCH_STATUS_OUT_OF_MEMORY,           ## *
+                                            ##  Out of memory.
+                                            ##
+
+    NOTMUCH_STATUS_READ_ONLY_DATABASE,      ## *
+                                            ##  An attempt was made to write to a database opened in read-only
+                                            ##  mode.
+                                            ##
+
+    NOTMUCH_STATUS_XAPIAN_EXCEPTION,        ## *
+                                            ##  A Xapian exception occurred.
+                                            ##
+                                            ##  @todo We don't really want to expose this lame XAPIAN_EXCEPTION
+                                            ##  value. Instead we should map to things like DATABASE_LOCKED or
+                                            ##  whatever.
+                                            ##
+
+    NOTMUCH_STATUS_FILE_ERROR,              ## *
+                                            ##  An error occurred trying to read or write to a file (this could
+                                            ##  be file not found, permission denied, etc.)
+                                            ##
+
+    NOTMUCH_STATUS_FILE_NOT_EMAIL,          ## *
+                                            ##  A file was presented that doesn't appear to be an email
+                                            ##  message.
+                                            ##
+
+    NOTMUCH_STATUS_DUPLICATE_MESSAGE_ID,    ## *
+                                            ##  A file contains a message ID that is identical to a message
+                                            ##  already in the database.
+                                            ##
+
+    NOTMUCH_STATUS_NULL_POINTER,            ## *
+                                            ##  The user erroneously passed a NULL pointer to a notmuch
+                                            ##  function.
+                                            ##
+
+    NOTMUCH_STATUS_TAG_TOO_LONG,            ## *
+                                            ##  A tag value is too long (exceeds NOTMUCH_TAG_MAX).
+                                            ##
+
+    NOTMUCH_STATUS_UNBALANCED_FREEZE_THAW,  ## *
+                                            ##  The notmuch_message_thaw function has been called more times
+                                            ##  than notmuch_message_freeze.
+                                            ##
+
+    NOTMUCH_STATUS_UNBALANCED_ATOMIC,       ## *
+                                            ##  notmuch_database_end_atomic has been called more times than
+                                            ##  notmuch_database_begin_atomic.
+                                            ##
+
+    NOTMUCH_STATUS_UNSUPPORTED_OPERATION,   ## *
+                                            ##  The operation is not supported.
+                                            ##
+
+    NOTMUCH_STATUS_UPGRADE_REQUIRED,        ## *
+                                            ##  The operation requires a database upgrade.
+                                            ##
+
+    NOTMUCH_STATUS_PATH_ERROR,              ## *
+                                            ##  There is a problem with the proposed path, e.g. a relative path
+                                            ##  passed to a function expecting an absolute path.
+                                            ##
+
+    NOTMUCH_STATUS_IGNORED,                 ## *
+                                            ##  The requested operation was ignored. Depending on the function,
+                                            ##  this may not be an actual error.
+                                            ##
+
+    NOTMUCH_STATUS_ILLEGAL_ARGUMENT,        ## *
+                                            ##  One of the arguments violates the preconditions for the
+                                            ##  function, in a way not covered by a more specific argument.
+                                            ##
+
+    NOTMUCH_STATUS_MALFORMED_CRYPTO_PROTOCOL,   ## *
+                                                ##  A MIME object claimed to have cryptographic protection which
+                                                ##  notmuch tried to handle, but the protocol was not specified in
+                                                ##  an intelligible way.
+                                                ##
+
+    NOTMUCH_STATUS_FAILED_CRYPTO_CONTEXT_CREATION,  ## *
+                                                    ##  Notmuch attempted to do crypto processing, but could not
+                                                    ##  initialize the engine needed to do so.
+                                                    ##
+
     NOTMUCH_STATUS_UNKNOWN_CRYPTO_PROTOCOL, ## *
-                                           ##  Not an actual status value. Just a way to find out how many
-                                           ##  valid status values there are.
-                                           ##
-    NOTMUCH_STATUS_LAST_STATUS
+                                            ##  A MIME object claimed to have cryptographic protection, and
+                                            ##  notmuch attempted to process it, but the specific protocol was
+                                            ##  something that notmuch doesn't know how to handle.
+                                            ##
+
+    NOTMUCH_STATUS_LAST_STATUS              ## *
+                                            ##  Not an actual status value. Just a way to find out how many
+                                            ##  valid status values there are.
+                                            ##
 
 
 ## *
@@ -169,24 +195,23 @@ type                          ## *
 ##  The result is read-only.
 ##
 
-proc notmuch_status_to_string*(status: notmuch_status_t): cstring {.
-    importc: "notmuch_status_to_string", header: "notmuch.h".}
+proc status_to_string*(status: notmuch_status_t): cstring {.importc: "notmuch_status_to_string".}
 ##  Various opaque data types. For each notmuch_<foo>_t see the various
 ##  notmuch_<foo> functions below.
 
-when not defined(__DOXYGEN__):
-  type
-    notmuch_database_t* = _notmuch_database
-    notmuch_query_t* = _notmuch_query
-    notmuch_threads_t* = _notmuch_threads
-    notmuch_thread_t* = _notmuch_thread
-    notmuch_messages_t* = _notmuch_messages
-    notmuch_message_t* = _notmuch_message
-    notmuch_tags_t* = _notmuch_tags
-    notmuch_directory_t* = _notmuch_directory
-    notmuch_filenames_t* = _notmuch_filenames
-    notmuch_config_list_t* = _notmuch_config_list
-    notmuch_indexopts_t* = _notmuch_indexopts
+type
+  notmuch_database_t* = distinct ptr object
+  notmuch_query_t* = distinct ptr object
+  notmuch_threads_t* = distinct ptr object
+  notmuch_thread_t* = distinct ptr object
+  notmuch_messages_t* = distinct ptr object
+  notmuch_message_t* = distinct ptr object
+  notmuch_tags_t* = distinct ptr object
+  notmuch_directory_t* = distinct ptr object
+  notmuch_filenames_t* = distinct ptr object
+  notmuch_config_list_t* = distinct ptr object
+  notmuch_indexopts_t* = distinct ptr object
+
 ## *
 ##  Create a new, empty notmuch database located at 'path'.
 ##
@@ -222,30 +247,27 @@ when not defined(__DOXYGEN__):
 ##  NOTMUCH_STATUS_XAPIAN_EXCEPTION: A Xapian exception occurred.
 ##
 
-proc notmuch_database_create*(path: cstring; database: ptr ptr notmuch_database_t): notmuch_status_t {.
-    importc: "notmuch_database_create", header: "notmuch.h".}
+proc create*(path: cstring; database: ptr notmuch_database_t): notmuch_status_t {.importc: "notmuch_database_create".}
 ## *
 ##  Like notmuch_database_create, except optionally return an error
 ##  message. This message is allocated by malloc and should be freed by
 ##  the caller.
 ##
 
-proc notmuch_database_create_verbose*(path: cstring;
-                                     database: ptr ptr notmuch_database_t;
-                                     error_message: cstringArray): notmuch_status_t {.
-    importc: "notmuch_database_create_verbose", header: "notmuch.h".}
+proc create_verbose*(path: cstring; database: ptr notmuch_database_t; error_message: ptr cstring): notmuch_status_t {.importc: "notmuch_database_create_verbose".}
 ## *
 ##  Database open mode for notmuch_database_open.
 ##
 
-type                          ## *
-    ##  Open database for reading only.
-    ##
+type
   notmuch_database_mode_t* {.size: sizeof(cint).} = enum
-    NOTMUCH_DATABASE_MODE_READ_ONLY = 0, ## *
-                                      ##  Open database for reading and writing.
-                                      ##
-    NOTMUCH_DATABASE_MODE_READ_WRITE
+    NOTMUCH_DATABASE_MODE_READ_ONLY = 0,    ## *
+                                            ##  Open database for reading only.
+                                            ##
+
+    NOTMUCH_DATABASE_MODE_READ_WRITE        ## *
+                                            ##  Open database for reading and writing.
+                                            ##
 
 
 ## *
@@ -281,26 +303,20 @@ type                          ## *
 ##  NOTMUCH_STATUS_XAPIAN_EXCEPTION: A Xapian exception occurred.
 ##
 
-proc notmuch_database_open*(path: cstring; mode: notmuch_database_mode_t;
-                           database: ptr ptr notmuch_database_t): notmuch_status_t {.
-    importc: "notmuch_database_open", header: "notmuch.h".}
+proc open*(path: cstring; mode: notmuch_database_mode_t; database: ptr notmuch_database_t): notmuch_status_t {.importc: "notmuch_database_open".}
 ## *
 ##  Like notmuch_database_open, except optionally return an error
 ##  message. This message is allocated by malloc and should be freed by
 ##  the caller.
 ##
 
-proc notmuch_database_open_verbose*(path: cstring; mode: notmuch_database_mode_t;
-                                   database: ptr ptr notmuch_database_t;
-                                   error_message: cstringArray): notmuch_status_t {.
-    importc: "notmuch_database_open_verbose", header: "notmuch.h".}
+proc open_verbose*(path: cstring; mode: notmuch_database_mode_t; database: ptr notmuch_database_t; error_message: ptr cstring): notmuch_status_t {.importc: "notmuch_database_open_verbose".}
 ## *
 ##  Retrieve last status string for given database.
 ##
 ##
 
-proc notmuch_database_status_string*(notmuch: ptr notmuch_database_t): cstring {.
-    importc: "notmuch_database_status_string", header: "notmuch.h".}
+proc database_status_string*(notmuch: notmuch_database_t): cstring {.importc: "notmuch_database_status_string".}
 ## *
 ##  Commit changes and close the given notmuch database.
 ##
@@ -331,8 +347,7 @@ proc notmuch_database_status_string*(notmuch: ptr notmuch_database_t): cstring {
 ## 	changes to the database, if any, have been flushed to disk.
 ##
 
-proc notmuch_database_close*(database: ptr notmuch_database_t): notmuch_status_t {.
-    importc: "notmuch_database_close", header: "notmuch.h".}
+proc close*(database: notmuch_database_t): notmuch_status_t {.importc: "notmuch_database_close".}
 ## *
 ##  A callback invoked by notmuch_database_compact to notify the user
 ##  of the progress of the compaction process.
@@ -353,10 +368,7 @@ type
 ##  'closure' is passed verbatim to any callback invoked.
 ##
 
-proc notmuch_database_compact*(path: cstring; backup_path: cstring;
-                              status_cb: notmuch_compact_status_cb_t;
-                              closure: pointer): notmuch_status_t {.
-    importc: "notmuch_database_compact", header: "notmuch.h".}
+proc compact*(path: cstring; backup_path: cstring; status_cb: notmuch_compact_status_cb_t; closure: pointer): notmuch_status_t {.importc: "notmuch_database_compact".}
 ## *
 ##  Destroy the notmuch database, closing it if necessary and freeing
 ##  all associated resources.
@@ -365,8 +377,7 @@ proc notmuch_database_compact*(path: cstring; backup_path: cstring;
 ##  notmuch_database_destroy itself has no failure modes.
 ##
 
-proc notmuch_database_destroy*(database: ptr notmuch_database_t): notmuch_status_t {.
-    importc: "notmuch_database_destroy", header: "notmuch.h".}
+proc destroy*(database: notmuch_database_t): notmuch_status_t {.importc: "notmuch_database_destroy".}
 ## *
 ##  Return the database path of the given database.
 ##
@@ -374,14 +385,12 @@ proc notmuch_database_destroy*(database: ptr notmuch_database_t): notmuch_status
 ##  modified nor freed by the caller.
 ##
 
-proc notmuch_database_get_path*(database: ptr notmuch_database_t): cstring {.
-    importc: "notmuch_database_get_path", header: "notmuch.h".}
+proc get_path*(database: notmuch_database_t): cstring {.importc: "notmuch_database_get_path".}
 ## *
 ##  Return the database format version of the given database.
 ##
 
-proc notmuch_database_get_version*(database: ptr notmuch_database_t): cuint {.
-    importc: "notmuch_database_get_version", header: "notmuch.h".}
+proc get_version*(database: notmuch_database_t): cuint {.importc: "notmuch_database_get_version".}
 ## *
 ##  Can the database be upgraded to a newer database version?
 ##
@@ -393,8 +402,7 @@ proc notmuch_database_get_version*(database: ptr notmuch_database_t): cuint {.
 ##  read-only database.
 ##
 
-proc notmuch_database_needs_upgrade*(database: ptr notmuch_database_t): notmuch_bool_t {.
-    importc: "notmuch_database_needs_upgrade", header: "notmuch.h".}
+proc needs_upgrade*(database: notmuch_database_t): notmuch_bool_t {.importc: "notmuch_database_needs_upgrade".}
 ## *
 ##  Upgrade the current database to the latest supported version.
 ##
@@ -413,9 +421,7 @@ proc notmuch_database_needs_upgrade*(database: ptr notmuch_database_t): notmuch_
 ##  any callback invoked.
 ##
 
-proc notmuch_database_upgrade*(database: ptr notmuch_database_t; progress_notify: proc (
-    closure: pointer; progress: cdouble); closure: pointer): notmuch_status_t {.
-    importc: "notmuch_database_upgrade", header: "notmuch.h".}
+proc upgrade*(database: notmuch_database_t; progress_notify: proc (closure: pointer; progress: cdouble); closure: pointer): notmuch_status_t {.importc: "notmuch_database_upgrade".}
 ## *
 ##  Begin an atomic database operation.
 ##
@@ -436,8 +442,7 @@ proc notmuch_database_upgrade*(database: ptr notmuch_database_t; progress_notify
 ## 	atomic section not entered.
 ##
 
-proc notmuch_database_begin_atomic*(notmuch: ptr notmuch_database_t): notmuch_status_t {.
-    importc: "notmuch_database_begin_atomic", header: "notmuch.h".}
+proc begin_atomic*(notmuch: notmuch_database_t): notmuch_status_t {.importc: "notmuch_database_begin_atomic".}
 ## *
 ##  Indicate the end of an atomic database operation.
 ##
@@ -452,8 +457,7 @@ proc notmuch_database_begin_atomic*(notmuch: ptr notmuch_database_t): notmuch_st
 ## 	an atomic section.
 ##
 
-proc notmuch_database_end_atomic*(notmuch: ptr notmuch_database_t): notmuch_status_t {.
-    importc: "notmuch_database_end_atomic", header: "notmuch.h".}
+proc end_atomic*(notmuch: notmuch_database_t): notmuch_status_t {.importc: "notmuch_database_end_atomic".}
 ## *
 ##  Return the committed database revision and UUID.
 ##
@@ -469,9 +473,7 @@ proc notmuch_database_end_atomic*(notmuch: ptr notmuch_database_t): notmuch_stat
 ##  have the same database UUID.
 ##
 
-proc notmuch_database_get_revision*(notmuch: ptr notmuch_database_t;
-                                   uuid: cstringArray): culong {.
-    importc: "notmuch_database_get_revision", header: "notmuch.h".}
+proc get_revision*(notmuch: notmuch_database_t; uuid: ptr cstring): culong {.importc: "notmuch_database_get_revision".}
 ## *
 ##  Retrieve a directory object from the database for 'path'.
 ##
@@ -499,10 +501,7 @@ proc notmuch_database_get_revision*(notmuch: ptr notmuch_database_t;
 ##  	database to use this function.
 ##
 
-proc notmuch_database_get_directory*(database: ptr notmuch_database_t;
-                                    path: cstring;
-                                    directory: ptr ptr notmuch_directory_t): notmuch_status_t {.
-    importc: "notmuch_database_get_directory", header: "notmuch.h".}
+proc get_directory*(database: notmuch_database_t; path: cstring; directory: ptr notmuch_directory_t): notmuch_status_t {.importc: "notmuch_database_get_directory".}
 ## *
 ##  Add a message file to a database, indexing it for retrieval by
 ##  future searches.  If a message already exists with the same message
@@ -564,11 +563,7 @@ proc notmuch_database_get_directory*(database: ptr notmuch_database_t;
 ##  @since libnotmuch 5.1 (notmuch 0.26)
 ##
 
-proc notmuch_database_index_file*(database: ptr notmuch_database_t;
-                                 filename: cstring;
-                                 indexopts: ptr notmuch_indexopts_t;
-                                 message: ptr ptr notmuch_message_t): notmuch_status_t {.
-    importc: "notmuch_database_index_file", header: "notmuch.h".}
+proc index_file*(database: notmuch_database_t; filename: cstring; indexopts: notmuch_indexopts_t; message: ptr notmuch_message_t): notmuch_status_t {.importc: "notmuch_database_index_file".}
 ## *
 ##  Remove a message filename from the given notmuch database. If the
 ##  message has no more filenames, remove the message.
@@ -598,9 +593,7 @@ proc notmuch_database_index_file*(database: ptr notmuch_database_t;
 ##  	database to use this function.
 ##
 
-proc notmuch_database_remove_message*(database: ptr notmuch_database_t;
-                                     filename: cstring): notmuch_status_t {.
-    importc: "notmuch_database_remove_message", header: "notmuch.h".}
+proc remove_message*(database: notmuch_database_t; filename: cstring): notmuch_status_t {.importc: "notmuch_database_remove_message".}
 ## *
 ##  Find a message with the given message_id.
 ##
@@ -625,10 +618,7 @@ proc notmuch_database_remove_message*(database: ptr notmuch_database_t;
 ##  NOTMUCH_STATUS_XAPIAN_EXCEPTION: A Xapian exception occurred
 ##
 
-proc notmuch_database_find_message*(database: ptr notmuch_database_t;
-                                   message_id: cstring;
-                                   message: ptr ptr notmuch_message_t): notmuch_status_t {.
-    importc: "notmuch_database_find_message", header: "notmuch.h".}
+proc find_message*(database: notmuch_database_t; message_id: cstring; message: ptr  notmuch_message_t): notmuch_status_t {.importc: "notmuch_database_find_message".}
 ## *
 ##  Find a message with the given filename.
 ##
@@ -656,9 +646,7 @@ proc notmuch_database_find_message*(database: ptr notmuch_database_t;
 ##  	database to use this function.
 ##
 
-proc notmuch_database_find_message_by_filename*(notmuch: ptr notmuch_database_t;
-    filename: cstring; message: ptr ptr notmuch_message_t): notmuch_status_t {.
-    importc: "notmuch_database_find_message_by_filename", header: "notmuch.h".}
+proc find_message_by_filename*(notmuch: notmuch_database_t; filename: cstring; message: ptr  notmuch_message_t): notmuch_status_t {.importc: "notmuch_database_find_message_by_filename".}
 ## *
 ##  Return a list of all tags found in the database.
 ##
@@ -668,8 +656,7 @@ proc notmuch_database_find_message_by_filename*(notmuch: ptr notmuch_database_t;
 ##  On error this function returns NULL.
 ##
 
-proc notmuch_database_get_all_tags*(db: ptr notmuch_database_t): ptr notmuch_tags_t {.
-    importc: "notmuch_database_get_all_tags", header: "notmuch.h".}
+proc get_all_tags*(db: notmuch_database_t): notmuch_tags_t {.importc: "notmuch_database_get_all_tags".}
 ## *
 ##  Create a new query for 'database'.
 ##
@@ -696,40 +683,40 @@ proc notmuch_database_get_all_tags*(db: ptr notmuch_database_t): ptr notmuch_tag
 ##  Will return NULL if insufficient memory is available.
 ##
 
-proc notmuch_query_create*(database: ptr notmuch_database_t; query_string: cstring): ptr notmuch_query_t {.
-    importc: "notmuch_query_create", header: "notmuch.h".}
+proc create*(database: notmuch_database_t; query_string: cstring): notmuch_query_t {.importc: "notmuch_query_create".}
 ## *
 ##  Sort values for notmuch_query_set_sort.
 ##
 
-type                          ## *
-    ##  Oldest first.
-    ##
+type
   notmuch_sort_t* {.size: sizeof(cint).} = enum
-    NOTMUCH_SORT_OLDEST_FIRST, ## *
-                              ##  Newest first.
-                              ##
-    NOTMUCH_SORT_NEWEST_FIRST, ## *
-                              ##  Sort by message-id.
-                              ##
-    NOTMUCH_SORT_MESSAGE_ID,  ## *
-                            ##  Do not sort.
-                            ##
-    NOTMUCH_SORT_UNSORTED
+    NOTMUCH_SORT_OLDEST_FIRST,  ## *
+                                ##  Oldest first.
+                                ##
+
+    NOTMUCH_SORT_NEWEST_FIRST,  ## *
+                                ##  Newest first.
+                                ##
+
+    NOTMUCH_SORT_MESSAGE_ID,    ## *
+                                ##  Sort by message-id.
+                                ##
+
+    NOTMUCH_SORT_UNSORTED       ## *
+                                ##  Do not sort.
+                                ##
 
 
 ## *
 ##  Return the query_string of this query. See notmuch_query_create.
 ##
 
-proc notmuch_query_get_query_string*(query: ptr notmuch_query_t): cstring {.
-    importc: "notmuch_query_get_query_string", header: "notmuch.h".}
+proc get_query_string*(query: notmuch_query_t): cstring {.importc: "notmuch_query_get_query_string".}
 ## *
 ##  Return the notmuch database of this query. See notmuch_query_create.
 ##
 
-proc notmuch_query_get_database*(query: ptr notmuch_query_t): ptr notmuch_database_t {.
-    importc: "notmuch_query_get_database", header: "notmuch.h".}
+proc get_database*(query: notmuch_query_t): notmuch_database_t {.importc: "notmuch_query_get_database".}
 ## *
 ##  Exclude values for notmuch_query_set_omit_excluded. The strange
 ##  order is to maintain backward compatibility: the old FALSE/TRUE
@@ -739,7 +726,9 @@ proc notmuch_query_get_database*(query: ptr notmuch_query_t): ptr notmuch_databa
 
 type
   notmuch_exclude_t* {.size: sizeof(cint).} = enum
-    NOTMUCH_EXCLUDE_FLAG, NOTMUCH_EXCLUDE_TRUE, NOTMUCH_EXCLUDE_FALSE,
+    NOTMUCH_EXCLUDE_FLAG,
+    NOTMUCH_EXCLUDE_TRUE,
+    NOTMUCH_EXCLUDE_FALSE,
     NOTMUCH_EXCLUDE_ALL
 
 
@@ -771,22 +760,18 @@ type
 ##  only match in excluded messages.
 ##
 
-proc notmuch_query_set_omit_excluded*(query: ptr notmuch_query_t;
-                                     omit_excluded: notmuch_exclude_t) {.
-    importc: "notmuch_query_set_omit_excluded", header: "notmuch.h".}
+proc set_omit_excluded*(query: notmuch_query_t; omit_excluded: notmuch_exclude_t) {.importc: "notmuch_query_set_omit_excluded".}
 ## *
 ##  Specify the sorting desired for this query.
 ##
 
-proc notmuch_query_set_sort*(query: ptr notmuch_query_t; sort: notmuch_sort_t) {.
-    importc: "notmuch_query_set_sort", header: "notmuch.h".}
+proc set_sort*(query: notmuch_query_t; sort: notmuch_sort_t) {.importc: "notmuch_query_set_sort".}
 ## *
 ##  Return the sort specified for this query. See
 ##  notmuch_query_set_sort.
 ##
 
-proc notmuch_query_get_sort*(query: ptr notmuch_query_t): notmuch_sort_t {.
-    importc: "notmuch_query_get_sort", header: "notmuch.h".}
+proc query_get_sort*(query: ptr notmuch_query_t): notmuch_sort_t {.importc: "notmuch_query_get_sort".}
 ## *
 ##  Add a tag that will be excluded from the query results by default.
 ##  This exclusion will be ignored if this tag appears explicitly in
@@ -803,8 +788,7 @@ proc notmuch_query_get_sort*(query: ptr notmuch_query_t): notmuch_sort_t {.
 ## 		not excluded.
 ##
 
-proc notmuch_query_add_tag_exclude*(query: ptr notmuch_query_t; tag: cstring): notmuch_status_t {.
-    importc: "notmuch_query_add_tag_exclude", header: "notmuch.h".}
+proc add_tag_exclude*(query: notmuch_query_t; tag: cstring): notmuch_status_t {.importc: "notmuch_query_add_tag_exclude".}
 ## *
 ##  Execute a query for threads, returning a notmuch_threads_t object
 ##  which can be used to iterate over the results. The returned threads
@@ -845,9 +829,7 @@ proc notmuch_query_add_tag_exclude*(query: ptr notmuch_query_t; tag: cstring): n
 ##  @since libnotmuch 5.0 (notmuch 0.25)
 ##
 
-proc notmuch_query_search_threads*(query: ptr notmuch_query_t;
-                                  `out`: ptr ptr notmuch_threads_t): notmuch_status_t {.
-    importc: "notmuch_query_search_threads", header: "notmuch.h".}
+proc search_threads*(query: notmuch_query_t; `out`: ptr notmuch_threads_t): notmuch_status_t {.importc: "notmuch_query_search_threads".}
 ## *
 ##  Execute a query for messages, returning a notmuch_messages_t object
 ##  which can be used to iterate over the results. The returned
@@ -890,9 +872,7 @@ proc notmuch_query_search_threads*(query: ptr notmuch_query_t;
 ##  @since libnotmuch 5 (notmuch 0.25)
 ##
 
-proc notmuch_query_search_messages*(query: ptr notmuch_query_t;
-                                   `out`: ptr ptr notmuch_messages_t): notmuch_status_t {.
-    importc: "notmuch_query_search_messages", header: "notmuch.h".}
+proc search_messages*(query: notmuch_query_t; `out`: ptr notmuch_messages_t): notmuch_status_t {.importc: "notmuch_query_search_messages".}
 ## *
 ##  Destroy a notmuch_query_t along with any associated resources.
 ##
@@ -903,8 +883,7 @@ proc notmuch_query_search_messages*(query: ptr notmuch_query_t;
 ##  destroyed.
 ##
 
-proc notmuch_query_destroy*(query: ptr notmuch_query_t) {.
-    importc: "notmuch_query_destroy", header: "notmuch.h".}
+proc destroy*(query: notmuch_query_t) {.importc: "notmuch_query_destroy".}
 ## *
 ##  Is the given 'threads' iterator pointing at a valid thread.
 ##
@@ -918,8 +897,7 @@ proc notmuch_query_destroy*(query: ptr notmuch_query_t) {.
 ##  code showing how to iterate over a notmuch_threads_t object.
 ##
 
-proc notmuch_threads_valid*(threads: ptr notmuch_threads_t): notmuch_bool_t {.
-    importc: "notmuch_threads_valid", header: "notmuch.h".}
+proc valid*(threads: notmuch_threads_t): notmuch_bool_t {.importc: "notmuch_threads_valid".}
 ## *
 ##  Get the current thread from 'threads' as a notmuch_thread_t.
 ##
@@ -933,8 +911,7 @@ proc notmuch_threads_valid*(threads: ptr notmuch_threads_t): notmuch_bool_t {.
 ##  NULL.
 ##
 
-proc notmuch_threads_get*(threads: ptr notmuch_threads_t): ptr notmuch_thread_t {.
-    importc: "notmuch_threads_get", header: "notmuch.h".}
+proc get*(threads: notmuch_threads_t): notmuch_thread_t {.importc: "notmuch_threads_get".}
 ## *
 ##  Move the 'threads' iterator to the next thread.
 ##
@@ -947,8 +924,13 @@ proc notmuch_threads_get*(threads: ptr notmuch_threads_t): ptr notmuch_thread_t 
 ##  code showing how to iterate over a notmuch_threads_t object.
 ##
 
-proc notmuch_threads_move_to_next*(threads: ptr notmuch_threads_t) {.
-    importc: "notmuch_threads_move_to_next", header: "notmuch.h".}
+proc move_to_next*(threads: notmuch_threads_t) {.importc: "notmuch_threads_move_to_next".}
+
+iterator items*(iter: notmuch_threads_t): notmuch_thread_t =
+  while iter.valid() == 1:
+    yield iter.get()
+    iter.move_to_next()
+
 ## *
 ##  Destroy a notmuch_threads_t object.
 ##
@@ -957,8 +939,7 @@ proc notmuch_threads_move_to_next*(threads: ptr notmuch_threads_t) {.
 ##  containing query object is destroyed.
 ##
 
-proc notmuch_threads_destroy*(threads: ptr notmuch_threads_t) {.
-    importc: "notmuch_threads_destroy", header: "notmuch.h".}
+proc destroy*(threads: notmuch_threads_t) {.importc: "notmuch_threads_destroy".}
 ## *
 ##  Return the number of messages matching a search.
 ##
@@ -975,8 +956,7 @@ proc notmuch_threads_destroy*(threads: ptr notmuch_threads_t) {.
 ##  @since libnotmuch 5 (notmuch 0.25)
 ##
 
-proc notmuch_query_count_messages*(query: ptr notmuch_query_t; count: ptr cuint): notmuch_status_t {.
-    importc: "notmuch_query_count_messages", header: "notmuch.h".}
+proc count_messages*(query: notmuch_query_t; count: ptr cuint): notmuch_status_t {.importc: "notmuch_query_count_messages".}
 ## *
 ##  Return the number of threads matching a search.
 ##
@@ -1000,8 +980,7 @@ proc notmuch_query_count_messages*(query: ptr notmuch_query_t; count: ptr cuint)
 ##  @since libnotmuch 5 (notmuch 0.25)
 ##
 
-proc notmuch_query_count_threads*(query: ptr notmuch_query_t; count: ptr cuint): notmuch_status_t {.
-    importc: "notmuch_query_count_threads", header: "notmuch.h".}
+proc count_threads*(query: notmuch_query_t; count: ptr cuint): notmuch_status_t {.importc: "notmuch_query_count_threads".}
 ## *
 ##  Get the thread ID of 'thread'.
 ##
@@ -1011,8 +990,7 @@ proc notmuch_query_count_threads*(query: ptr notmuch_query_t; count: ptr cuint):
 ##  the query from which it derived is destroyed).
 ##
 
-proc notmuch_thread_get_thread_id*(thread: ptr notmuch_thread_t): cstring {.
-    importc: "notmuch_thread_get_thread_id", header: "notmuch.h".}
+proc get_thread_id*(thread: notmuch_thread_t): cstring {.importc: "notmuch_thread_get_thread_id".}
 ## *
 ##  Get the total number of messages in 'thread'.
 ##
@@ -1020,8 +998,7 @@ proc notmuch_thread_get_thread_id*(thread: ptr notmuch_thread_t): cstring {.
 ##  this thread. Contrast with notmuch_thread_get_matched_messages() .
 ##
 
-proc notmuch_thread_get_total_messages*(thread: ptr notmuch_thread_t): cint {.
-    importc: "notmuch_thread_get_total_messages", header: "notmuch.h".}
+proc thread_get_total_messages*(thread: notmuch_thread_t): cint {.importc: "notmuch_thread_get_total_messages".}
 ## *
 ##  Get the total number of files in 'thread'.
 ##
@@ -1031,8 +1008,7 @@ proc notmuch_thread_get_total_messages*(thread: ptr notmuch_thread_t): cint {.
 ##  @since libnotmuch 5.0 (notmuch 0.25)
 ##
 
-proc notmuch_thread_get_total_files*(thread: ptr notmuch_thread_t): cint {.
-    importc: "notmuch_thread_get_total_files", header: "notmuch.h".}
+proc get_total_files*(thread: notmuch_thread_t): cint {.importc: "notmuch_thread_get_total_files".}
 ## *
 ##  Get a notmuch_messages_t iterator for the top-level messages in
 ##  'thread' in oldest-first order.
@@ -1044,8 +1020,7 @@ proc notmuch_thread_get_total_files*(thread: ptr notmuch_thread_t): cint {.
 ##  The returned list will be destroyed when the thread is destroyed.
 ##
 
-proc notmuch_thread_get_toplevel_messages*(thread: ptr notmuch_thread_t): ptr notmuch_messages_t {.
-    importc: "notmuch_thread_get_toplevel_messages", header: "notmuch.h".}
+proc get_toplevel_messages*(thread: notmuch_thread_t): notmuch_messages_t {.importc: "notmuch_thread_get_toplevel_messages".}
 ## *
 ##  Get a notmuch_thread_t iterator for all messages in 'thread' in
 ##  oldest-first order.
@@ -1053,8 +1028,7 @@ proc notmuch_thread_get_toplevel_messages*(thread: ptr notmuch_thread_t): ptr no
 ##  The returned list will be destroyed when the thread is destroyed.
 ##
 
-proc notmuch_thread_get_messages*(thread: ptr notmuch_thread_t): ptr notmuch_messages_t {.
-    importc: "notmuch_thread_get_messages", header: "notmuch.h".}
+proc get_messages*(thread: notmuch_thread_t): notmuch_messages_t {.importc: "notmuch_thread_get_messages".}
 ## *
 ##  Get the number of messages in 'thread' that matched the search.
 ##
@@ -1065,8 +1039,7 @@ proc notmuch_thread_get_messages*(thread: ptr notmuch_thread_t): ptr notmuch_mes
 ##  notmuch_thread_get_total_messages() .
 ##
 
-proc notmuch_thread_get_matched_messages*(thread: ptr notmuch_thread_t): cint {.
-    importc: "notmuch_thread_get_matched_messages", header: "notmuch.h".}
+proc get_matched_messages*(thread: notmuch_thread_t): cint {.importc: "notmuch_thread_get_matched_messages".}
 ## *
 ##  Get the authors of 'thread' as a UTF-8 string.
 ##
@@ -1084,8 +1057,7 @@ proc notmuch_thread_get_matched_messages*(thread: ptr notmuch_thread_t): cint {.
 ##  the query from which it derived is destroyed).
 ##
 
-proc notmuch_thread_get_authors*(thread: ptr notmuch_thread_t): cstring {.
-    importc: "notmuch_thread_get_authors", header: "notmuch.h".}
+proc get_authors*(thread: notmuch_thread_t): cstring {.importc: "notmuch_thread_get_authors".}
 ## *
 ##  Get the subject of 'thread' as a UTF-8 string.
 ##
@@ -1099,20 +1071,17 @@ proc notmuch_thread_get_authors*(thread: ptr notmuch_thread_t): cstring {.
 ##  the query from which it derived is destroyed).
 ##
 
-proc notmuch_thread_get_subject*(thread: ptr notmuch_thread_t): cstring {.
-    importc: "notmuch_thread_get_subject", header: "notmuch.h".}
+proc get_subject*(thread: notmuch_thread_t): cstring {.importc: "notmuch_thread_get_subject".}
 ## *
 ##  Get the date of the oldest message in 'thread' as a time_t value.
 ##
 
-proc notmuch_thread_get_oldest_date*(thread: ptr notmuch_thread_t): time_t {.
-    importc: "notmuch_thread_get_oldest_date", header: "notmuch.h".}
+proc get_oldest_date*(thread: notmuch_thread_t): time_t {.importc: "notmuch_thread_get_oldest_date".}
 ## *
 ##  Get the date of the newest message in 'thread' as a time_t value.
 ##
 
-proc notmuch_thread_get_newest_date*(thread: ptr notmuch_thread_t): time_t {.
-    importc: "notmuch_thread_get_newest_date", header: "notmuch.h".}
+proc get_newest_date*(thread: ptr notmuch_thread_t): time_t {.importc: "notmuch_thread_get_newest_date".}
 ## *
 ##  Get the tags for 'thread', returning a notmuch_tags_t object which
 ##  can be used to iterate over all tags.
@@ -1151,14 +1120,12 @@ proc notmuch_thread_get_newest_date*(thread: ptr notmuch_thread_t): time_t {.
 ##  it if the message is about to be destroyed).
 ##
 
-proc notmuch_thread_get_tags*(thread: ptr notmuch_thread_t): ptr notmuch_tags_t {.
-    importc: "notmuch_thread_get_tags", header: "notmuch.h".}
+proc get_tags*(thread: notmuch_thread_t): notmuch_tags_t {.importc: "notmuch_thread_get_tags".}
 ## *
 ##  Destroy a notmuch_thread_t object.
 ##
 
-proc notmuch_thread_destroy*(thread: ptr notmuch_thread_t) {.
-    importc: "notmuch_thread_destroy", header: "notmuch.h".}
+proc destroy*(thread: notmuch_thread_t) {.importc: "notmuch_thread_destroy".}
 ## *
 ##  Is the given 'messages' iterator pointing at a valid message.
 ##
@@ -1170,8 +1137,7 @@ proc notmuch_thread_destroy*(thread: ptr notmuch_thread_t) {.
 ##  code showing how to iterate over a notmuch_messages_t object.
 ##
 
-proc notmuch_messages_valid*(messages: ptr notmuch_messages_t): notmuch_bool_t {.
-    importc: "notmuch_messages_valid", header: "notmuch.h".}
+proc valid*(messages: notmuch_messages_t): notmuch_bool_t {.importc: "notmuch_messages_valid".}
 ## *
 ##  Get the current message from 'messages' as a notmuch_message_t.
 ##
@@ -1185,8 +1151,7 @@ proc notmuch_messages_valid*(messages: ptr notmuch_messages_t): notmuch_bool_t {
 ##  NULL.
 ##
 
-proc notmuch_messages_get*(messages: ptr notmuch_messages_t): ptr notmuch_message_t {.
-    importc: "notmuch_messages_get", header: "notmuch.h".}
+proc get*(messages: notmuch_messages_t): notmuch_message_t {.importc: "notmuch_messages_get".}
 ## *
 ##  Move the 'messages' iterator to the next message.
 ##
@@ -1199,8 +1164,13 @@ proc notmuch_messages_get*(messages: ptr notmuch_messages_t): ptr notmuch_messag
 ##  code showing how to iterate over a notmuch_messages_t object.
 ##
 
-proc notmuch_messages_move_to_next*(messages: ptr notmuch_messages_t) {.
-    importc: "notmuch_messages_move_to_next", header: "notmuch.h".}
+proc move_to_next*(messages: notmuch_messages_t) {.importc: "notmuch_messages_move_to_next".}
+
+iterator items*(iter: notmuch_messages_t): notmuch_message_t =
+  while iter.valid() == 1:
+    yield iter.get()
+    iter.move_to_next()
+
 ## *
 ##  Destroy a notmuch_messages_t object.
 ##
@@ -1209,8 +1179,7 @@ proc notmuch_messages_move_to_next*(messages: ptr notmuch_messages_t) {.
 ##  query object is destroyed.
 ##
 
-proc notmuch_messages_destroy*(messages: ptr notmuch_messages_t) {.
-    importc: "notmuch_messages_destroy", header: "notmuch.h".}
+proc destroy*(messages: notmuch_messages_t) {.importc: "notmuch_messages_destroy".}
 ## *
 ##  Return a list of tags from all messages.
 ##
@@ -1225,16 +1194,14 @@ proc notmuch_messages_destroy*(messages: ptr notmuch_messages_t) {.
 ##  The function returns NULL on error.
 ##
 
-proc notmuch_messages_collect_tags*(messages: ptr notmuch_messages_t): ptr notmuch_tags_t {.
-    importc: "notmuch_messages_collect_tags", header: "notmuch.h".}
+proc collect_tags*(messages: notmuch_messages_t): notmuch_tags_t {.importc: "notmuch_messages_collect_tags".}
 ## *
 ##  Get the database associated with this message.
 ##
 ##  @since libnotmuch 5.2 (notmuch 0.27)
 ##
 
-proc notmuch_message_get_database*(message: ptr notmuch_message_t): ptr notmuch_database_t {.
-    importc: "notmuch_message_get_database", header: "notmuch.h".}
+proc get_database*(message: notmuch_message_t): notmuch_database_t {.importc: "notmuch_message_get_database".}
 ## *
 ##  Get the message ID of 'message'.
 ##
@@ -1248,8 +1215,7 @@ proc notmuch_message_get_database*(message: ptr notmuch_message_t): ptr notmuch_
 ##  message if the original file does not contain one).
 ##
 
-proc notmuch_message_get_message_id*(message: ptr notmuch_message_t): cstring {.
-    importc: "notmuch_message_get_message_id", header: "notmuch.h".}
+proc get_message_id*(message: notmuch_message_t): cstring {.importc: "notmuch_message_get_message_id".}
 ## *
 ##  Get the thread ID of 'message'.
 ##
@@ -1263,8 +1229,7 @@ proc notmuch_message_get_message_id*(message: ptr notmuch_message_t): cstring {.
 ##  message belongs to a single thread.
 ##
 
-proc notmuch_message_get_thread_id*(message: ptr notmuch_message_t): cstring {.
-    importc: "notmuch_message_get_thread_id", header: "notmuch.h".}
+proc get_thread_id*(message: notmuch_message_t): cstring {.importc: "notmuch_message_get_thread_id".}
 ## *
 ##  Get a notmuch_messages_t iterator for all of the replies to
 ##  'message'.
@@ -1284,16 +1249,14 @@ proc notmuch_message_get_thread_id*(message: ptr notmuch_message_t): cstring {.
 ##  value as legitimate, and simply return FALSE for it.)
 ##
 
-proc notmuch_message_get_replies*(message: ptr notmuch_message_t): ptr notmuch_messages_t {.
-    importc: "notmuch_message_get_replies", header: "notmuch.h".}
+proc get_replies*(message: notmuch_message_t): notmuch_messages_t {.importc: "notmuch_message_get_replies".}
 ## *
 ##  Get the total number of files associated with a message.
 ##  @returns Non-negative integer
 ##  @since libnotmuch 5.0 (notmuch 0.25)
 ##
 
-proc notmuch_message_count_files*(message: ptr notmuch_message_t): cint {.
-    importc: "notmuch_message_count_files", header: "notmuch.h".}
+proc count_files*(message: notmuch_message_t): cint {.importc: "notmuch_message_count_files".}
 ## *
 ##  Get a filename for the email corresponding to 'message'.
 ##
@@ -1311,8 +1274,7 @@ proc notmuch_message_count_files*(message: ptr notmuch_message_t): cint {.
 ##  complete list of filenames.
 ##
 
-proc notmuch_message_get_filename*(message: ptr notmuch_message_t): cstring {.
-    importc: "notmuch_message_get_filename", header: "notmuch.h".}
+proc get_filename*(message: notmuch_message_t): cstring {.importc: "notmuch_message_get_filename".}
 ## *
 ##  Get all filenames for the email corresponding to 'message'.
 ##
@@ -1324,8 +1286,8 @@ proc notmuch_message_get_filename*(message: ptr notmuch_message_t): cstring {.
 ##  component will match notmuch_database_get_path() ).
 ##
 
-proc notmuch_message_get_filenames*(message: ptr notmuch_message_t): ptr notmuch_filenames_t {.
-    importc: "notmuch_message_get_filenames", header: "notmuch.h".}
+proc get_filenames*(message: notmuch_message_t): notmuch_filenames_t {.
+    importc: "notmuch_message_get_filenames".}
 ## *
 ##  Re-index the e-mail corresponding to 'message' using the supplied index options
 ##
@@ -1337,37 +1299,32 @@ proc notmuch_message_get_filenames*(message: ptr notmuch_message_t): ptr notmuch
 ##  original message, not to the reindexed message.
 ##
 
-proc notmuch_message_reindex*(message: ptr notmuch_message_t;
-                             indexopts: ptr notmuch_indexopts_t): notmuch_status_t {.
-    importc: "notmuch_message_reindex", header: "notmuch.h".}
+proc reindex*(message: notmuch_message_t; indexopts: notmuch_indexopts_t): notmuch_status_t {.importc: "notmuch_message_reindex".}
 ## *
 ##  Message flags.
 ##
 
 type
   notmuch_message_flag_t* {.size: sizeof(cint).} = enum
-    NOTMUCH_MESSAGE_FLAG_MATCH, NOTMUCH_MESSAGE_FLAG_EXCLUDED, ##  This message is a "ghost message", meaning it has no filenames
-                                                             ##  or content, but we know it exists because it was referenced by
-                                                             ##  some other message.  A ghost message has only a message ID and
-                                                             ##  thread ID.
-                                                             ##
-    NOTMUCH_MESSAGE_FLAG_GHOST
+    NOTMUCH_MESSAGE_FLAG_MATCH,
+    NOTMUCH_MESSAGE_FLAG_EXCLUDED,
+    NOTMUCH_MESSAGE_FLAG_GHOST      ##  This message is a "ghost message", meaning it has no filenames
+                                    ##  or content, but we know it exists because it was referenced by
+                                    ##  some other message.  A ghost message has only a message ID and
+                                    ##  thread ID.
+                                    ##
 
 
 ## *
 ##  Get a value of a flag for the email corresponding to 'message'.
 ##
 
-proc notmuch_message_get_flag*(message: ptr notmuch_message_t;
-                              flag: notmuch_message_flag_t): notmuch_bool_t {.
-    importc: "notmuch_message_get_flag", header: "notmuch.h".}
+proc get_flag*(message: notmuch_message_t; flag: notmuch_message_flag_t): notmuch_bool_t {.importc: "notmuch_message_get_flag".}
 ## *
 ##  Set a value of a flag for the email corresponding to 'message'.
 ##
 
-proc notmuch_message_set_flag*(message: ptr notmuch_message_t;
-                              flag: notmuch_message_flag_t; value: notmuch_bool_t) {.
-    importc: "notmuch_message_set_flag", header: "notmuch.h".}
+proc set_flag*(message: notmuch_message_t; flag: notmuch_message_flag_t; value: notmuch_bool_t) {.importc: "notmuch_message_set_flag".}
 ## *
 ##  Get the date of 'message' as a time_t value.
 ##
@@ -1376,8 +1333,7 @@ proc notmuch_message_set_flag*(message: ptr notmuch_message_t;
 ##  "date".
 ##
 
-proc notmuch_message_get_date*(message: ptr notmuch_message_t): time_t {.
-    importc: "notmuch_message_get_date", header: "notmuch.h".}
+proc get_date*(message: notmuch_message_t): time_t {.importc: "notmuch_message_get_date".}
 ## *
 ##  Get the value of the specified header from 'message' as a UTF-8 string.
 ##
@@ -1395,8 +1351,7 @@ proc notmuch_message_get_date*(message: ptr notmuch_message_t): time_t {.
 ##  header line matching 'header'. Returns NULL if any error occurs.
 ##
 
-proc notmuch_message_get_header*(message: ptr notmuch_message_t; header: cstring): cstring {.
-    importc: "notmuch_message_get_header", header: "notmuch.h".}
+proc get_header*(message: notmuch_message_t; header: cstring): cstring {.importc: "notmuch_message_get_header".}
 ## *
 ##  Get the tags for 'message', returning a notmuch_tags_t object which
 ##  can be used to iterate over all tags.
@@ -1429,8 +1384,7 @@ proc notmuch_message_get_header*(message: ptr notmuch_message_t; header: cstring
 ##  it if the message is about to be destroyed).
 ##
 
-proc notmuch_message_get_tags*(message: ptr notmuch_message_t): ptr notmuch_tags_t {.
-    importc: "notmuch_message_get_tags", header: "notmuch.h".}
+proc get_tags*(message: notmuch_message_t): notmuch_tags_t {.importc: "notmuch_message_get_tags".}
 ## *
 ##  The longest possible tag value.
 ##
@@ -1454,8 +1408,7 @@ const
 ## 	mode so message cannot be modified.
 ##
 
-proc notmuch_message_add_tag*(message: ptr notmuch_message_t; tag: cstring): notmuch_status_t {.
-    importc: "notmuch_message_add_tag", header: "notmuch.h".}
+proc add_tag*(message: notmuch_message_t; tag: cstring): notmuch_status_t {.importc: "notmuch_message_add_tag".}
 ## *
 ##  Remove a tag from the given message.
 ##
@@ -1472,8 +1425,7 @@ proc notmuch_message_add_tag*(message: ptr notmuch_message_t; tag: cstring): not
 ## 	mode so message cannot be modified.
 ##
 
-proc notmuch_message_remove_tag*(message: ptr notmuch_message_t; tag: cstring): notmuch_status_t {.
-    importc: "notmuch_message_remove_tag", header: "notmuch.h".}
+proc remove_tag*(message: notmuch_message_t; tag: cstring): notmuch_status_t {.importc: "notmuch_message_remove_tag".}
 ## *
 ##  Remove all tags from the given message.
 ##
@@ -1484,8 +1436,7 @@ proc notmuch_message_remove_tag*(message: ptr notmuch_message_t; tag: cstring): 
 ## 	mode so message cannot be modified.
 ##
 
-proc notmuch_message_remove_all_tags*(message: ptr notmuch_message_t): notmuch_status_t {.
-    importc: "notmuch_message_remove_all_tags", header: "notmuch.h".}
+proc remove_all_tags*(message: notmuch_message_t): notmuch_status_t {.importc: "notmuch_message_remove_all_tags".}
 ## *
 ##  Add/remove tags according to maildir flags in the message filename(s).
 ##
@@ -1519,16 +1470,14 @@ proc notmuch_message_remove_all_tags*(message: ptr notmuch_message_t): notmuch_s
 ##  back to maildir flags.
 ##
 
-proc notmuch_message_maildir_flags_to_tags*(message: ptr notmuch_message_t): notmuch_status_t {.
-    importc: "notmuch_message_maildir_flags_to_tags", header: "notmuch.h".}
+proc maildir_flags_to_tags*(message: notmuch_message_t): notmuch_status_t {.importc: "notmuch_message_maildir_flags_to_tags".}
 ## *
 ##  return TRUE if any filename of 'message' has maildir flag 'flag',
 ##  FALSE otherwise.
 ##
 ##
 
-proc notmuch_message_has_maildir_flag*(message: ptr notmuch_message_t; flag: char): notmuch_bool_t {.
-    importc: "notmuch_message_has_maildir_flag", header: "notmuch.h".}
+proc has_maildir_flag*(message: notmuch_message_t; flag: char): notmuch_bool_t {.importc: "notmuch_message_has_maildir_flag".}
 ## *
 ##  Rename message filename(s) to encode tags as maildir flags.
 ##
@@ -1564,8 +1513,7 @@ proc notmuch_message_has_maildir_flag*(message: ptr notmuch_message_t; flag: cha
 ##  for synchronizing maildir flag changes back to tags.
 ##
 
-proc notmuch_message_tags_to_maildir_flags*(message: ptr notmuch_message_t): notmuch_status_t {.
-    importc: "notmuch_message_tags_to_maildir_flags", header: "notmuch.h".}
+proc tags_to_maildir_flags*(message: notmuch_message_t): notmuch_status_t {.importc: "notmuch_message_tags_to_maildir_flags".}
 ## *
 ##  Freeze the current state of 'message' within the database.
 ##
@@ -1608,8 +1556,7 @@ proc notmuch_message_tags_to_maildir_flags*(message: ptr notmuch_message_t): not
 ## 	mode so message cannot be modified.
 ##
 
-proc notmuch_message_freeze*(message: ptr notmuch_message_t): notmuch_status_t {.
-    importc: "notmuch_message_freeze", header: "notmuch.h".}
+proc freeze*(message: notmuch_message_t): notmuch_status_t {.importc: "notmuch_message_freeze".}
 ## *
 ##  Thaw the current 'message', synchronizing any changes that may have
 ##  occurred while 'message' was frozen into the notmuch database.
@@ -1632,8 +1579,7 @@ proc notmuch_message_freeze*(message: ptr notmuch_message_t): notmuch_status_t {
 ## 	notmuch_message_thaw.
 ##
 
-proc notmuch_message_thaw*(message: ptr notmuch_message_t): notmuch_status_t {.
-    importc: "notmuch_message_thaw", header: "notmuch.h".}
+proc thaw*(message: notmuch_message_t): notmuch_status_t {.importc: "notmuch_message_thaw".}
 ## *
 ##  Destroy a notmuch_message_t object.
 ##
@@ -1644,8 +1590,7 @@ proc notmuch_message_thaw*(message: ptr notmuch_message_t): notmuch_status_t {.
 ##  the messages get reclaimed when the containing query is destroyed.)
 ##
 
-proc notmuch_message_destroy*(message: ptr notmuch_message_t) {.
-    importc: "notmuch_message_destroy", header: "notmuch.h".}
+proc message_destroy*(message: notmuch_message_t) {.importc: "notmuch_message_destroy".}
 ## *
 ##  @name Message Properties
 ##
@@ -1673,9 +1618,7 @@ proc notmuch_message_destroy*(message: ptr notmuch_message_t) {.
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_get_property*(message: ptr notmuch_message_t; key: cstring;
-                                  value: cstringArray): notmuch_status_t {.
-    importc: "notmuch_message_get_property", header: "notmuch.h".}
+proc get_property*(message: notmuch_message_t; key: cstring; value: ptr cstring): notmuch_status_t {.importc: "notmuch_message_get_property".}
 ## *
 ##  Add a (key,value) pair to a message
 ##
@@ -1686,9 +1629,7 @@ proc notmuch_message_get_property*(message: ptr notmuch_message_t; key: cstring;
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_add_property*(message: ptr notmuch_message_t; key: cstring;
-                                  value: cstring): notmuch_status_t {.
-    importc: "notmuch_message_add_property", header: "notmuch.h".}
+proc add_property*(message: notmuch_message_t; key: cstring; value: cstring): notmuch_status_t {.importc: "notmuch_message_add_property".}
 ## *
 ##  Remove a (key,value) pair from a message.
 ##
@@ -1701,9 +1642,7 @@ proc notmuch_message_add_property*(message: ptr notmuch_message_t; key: cstring;
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_remove_property*(message: ptr notmuch_message_t; key: cstring;
-                                     value: cstring): notmuch_status_t {.
-    importc: "notmuch_message_remove_property", header: "notmuch.h".}
+proc remove_property*(message: notmuch_message_t; key: cstring; value: cstring): notmuch_status_t {.importc: "notmuch_message_remove_property".}
 ## *
 ##  Remove all (key,value) pairs from the given message.
 ##
@@ -1718,9 +1657,7 @@ proc notmuch_message_remove_property*(message: ptr notmuch_message_t; key: cstri
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_remove_all_properties*(message: ptr notmuch_message_t;
-    key: cstring): notmuch_status_t {.importc: "notmuch_message_remove_all_properties",
-                                   header: "notmuch.h".}
+proc remove_all_properties*(message: notmuch_message_t; key: cstring): notmuch_status_t {.importc: "notmuch_message_remove_all_properties".}
 ## *
 ##  Remove all (prefix*,value) pairs from the given message
 ##
@@ -1735,16 +1672,13 @@ proc notmuch_message_remove_all_properties*(message: ptr notmuch_message_t;
 ##  @since libnotmuch 5.1 (notmuch 0.26)
 ##
 
-proc notmuch_message_remove_all_properties_with_prefix*(
-    message: ptr notmuch_message_t; prefix: cstring): notmuch_status_t {.
-    importc: "notmuch_message_remove_all_properties_with_prefix",
-    header: "notmuch.h".}
+proc remove_all_properties_with_prefix*(message: notmuch_message_t; prefix: cstring): notmuch_status_t {.importc: "notmuch_message_remove_all_properties_with_prefix".}
 ## *
 ##  Opaque message property iterator
 ##
 
 type
-  notmuch_message_properties_t* = _notmuch_string_map_iterator
+  notmuch_message_properties_t* = distinct ptr object
 
 ## *
 ##  Get the properties for *message*, returning a
@@ -1779,9 +1713,7 @@ type
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_get_properties*(message: ptr notmuch_message_t; key: cstring;
-                                    exact: notmuch_bool_t): ptr notmuch_message_properties_t {.
-    importc: "notmuch_message_get_properties", header: "notmuch.h".}
+proc get_properties*(message: notmuch_message_t; key: cstring; exact: notmuch_bool_t): notmuch_message_properties_t {.importc: "notmuch_message_get_properties".}
 ## *
 ##  Return the number of properties named "key" belonging to the specific message.
 ##
@@ -1796,9 +1728,7 @@ proc notmuch_message_get_properties*(message: ptr notmuch_message_t; key: cstrin
 ##  @since libnotmuch 5.2 (notmuch 0.27)
 ##
 
-proc notmuch_message_count_properties*(message: ptr notmuch_message_t; key: cstring;
-                                      count: ptr cuint): notmuch_status_t {.
-    importc: "notmuch_message_count_properties", header: "notmuch.h".}
+proc count_properties*(message: notmuch_message_t; key: cstring; count: ptr cuint): notmuch_status_t {.importc: "notmuch_message_count_properties".}
 ## *
 ##  Is the given *properties* iterator pointing at a valid (key,value)
 ##  pair.
@@ -1816,8 +1746,7 @@ proc notmuch_message_count_properties*(message: ptr notmuch_message_t; key: cstr
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_properties_valid*(properties: ptr notmuch_message_properties_t): notmuch_bool_t {.
-    importc: "notmuch_message_properties_valid", header: "notmuch.h".}
+proc valid*(properties: notmuch_message_properties_t): notmuch_bool_t {.importc: "notmuch_message_properties_valid".}
 ## *
 ##  Move the *properties* iterator to the next (key,value) pair
 ##
@@ -1831,9 +1760,7 @@ proc notmuch_message_properties_valid*(properties: ptr notmuch_message_propertie
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_properties_move_to_next*(
-    properties: ptr notmuch_message_properties_t) {.
-    importc: "notmuch_message_properties_move_to_next", header: "notmuch.h".}
+proc move_to_next*(properties: notmuch_message_properties_t) {.importc: "notmuch_message_properties_move_to_next".}
 ## *
 ##  Return the key from the current (key,value) pair.
 ##
@@ -1842,8 +1769,13 @@ proc notmuch_message_properties_move_to_next*(
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_properties_key*(properties: ptr notmuch_message_properties_t): cstring {.
-    importc: "notmuch_message_properties_key", header: "notmuch.h".}
+proc key*(properties: notmuch_message_properties_t): cstring {.importc: "notmuch_message_properties_key".}
+
+iterator keys*(iter: notmuch_message_properties_t): cstring =
+  while iter.valid() == 1:
+    yield iter.key()
+    iter.move_to_next()
+
 ## *
 ##  Return the value from the current (key,value) pair.
 ##
@@ -1852,8 +1784,18 @@ proc notmuch_message_properties_key*(properties: ptr notmuch_message_properties_
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_properties_value*(properties: ptr notmuch_message_properties_t): cstring {.
-    importc: "notmuch_message_properties_value", header: "notmuch.h".}
+proc value*(properties: notmuch_message_properties_t): cstring {.importc: "notmuch_message_properties_value".}
+
+iterator values*(iter: notmuch_message_properties_t): cstring =
+  while iter.valid() == 1:
+    yield iter.value()
+    iter.move_to_next()
+
+iterator pairs*(iter: notmuch_message_properties_t): (cstring, cstring) =
+  while iter.valid() == 1:
+    yield (iter.key(), iter.value())
+    iter.move_to_next()
+
 ## *
 ##  Destroy a notmuch_message_properties_t object.
 ##
@@ -1864,8 +1806,7 @@ proc notmuch_message_properties_value*(properties: ptr notmuch_message_propertie
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_message_properties_destroy*(properties: ptr notmuch_message_properties_t) {.
-    importc: "notmuch_message_properties_destroy", header: "notmuch.h".}
+proc destroy*(properties: notmuch_message_properties_t) {.importc: "notmuch_message_properties_destroy".}
 ## *@}
 ## *
 ##  Is the given 'tags' iterator pointing at a valid tag.
@@ -1878,8 +1819,7 @@ proc notmuch_message_properties_destroy*(properties: ptr notmuch_message_propert
 ##  showing how to iterate over a notmuch_tags_t object.
 ##
 
-proc notmuch_tags_valid*(tags: ptr notmuch_tags_t): notmuch_bool_t {.
-    importc: "notmuch_tags_valid", header: "notmuch.h".}
+proc valid*(tags: notmuch_tags_t): notmuch_bool_t {.importc: "notmuch_tags_valid".}
 ## *
 ##  Get the current tag from 'tags' as a string.
 ##
@@ -1890,8 +1830,7 @@ proc notmuch_tags_valid*(tags: ptr notmuch_tags_t): notmuch_bool_t {.
 ##  showing how to iterate over a notmuch_tags_t object.
 ##
 
-proc notmuch_tags_get*(tags: ptr notmuch_tags_t): cstring {.
-    importc: "notmuch_tags_get", header: "notmuch.h".}
+proc get*(tags: notmuch_tags_t): cstring {.importc: "notmuch_tags_get".}
 ## *
 ##  Move the 'tags' iterator to the next tag.
 ##
@@ -1904,8 +1843,13 @@ proc notmuch_tags_get*(tags: ptr notmuch_tags_t): cstring {.
 ##  showing how to iterate over a notmuch_tags_t object.
 ##
 
-proc notmuch_tags_move_to_next*(tags: ptr notmuch_tags_t) {.
-    importc: "notmuch_tags_move_to_next", header: "notmuch.h".}
+proc move_to_next*(tags: notmuch_tags_t) {.importc: "notmuch_tags_move_to_next".}
+
+iterator items*(iter: notmuch_tags_t): cstring =
+  while iter.valid() == 1:
+    yield iter.get()
+    iter.move_to_next()
+
 ## *
 ##  Destroy a notmuch_tags_t object.
 ##
@@ -1914,8 +1858,7 @@ proc notmuch_tags_move_to_next*(tags: ptr notmuch_tags_t) {.
 ##  message or query objects are destroyed.
 ##
 
-proc notmuch_tags_destroy*(tags: ptr notmuch_tags_t) {.
-    importc: "notmuch_tags_destroy", header: "notmuch.h".}
+proc destroy*(tags: notmuch_tags_t) {.importc: "notmuch_tags_destroy".}
 ## *
 ##  Store an mtime within the database for 'directory'.
 ##
@@ -1954,8 +1897,7 @@ proc notmuch_tags_destroy*(tags: ptr notmuch_tags_t) {.
 ## 	mode so directory mtime cannot be modified.
 ##
 
-proc notmuch_directory_set_mtime*(directory: ptr notmuch_directory_t; mtime: time_t): notmuch_status_t {.
-    importc: "notmuch_directory_set_mtime", header: "notmuch.h".}
+proc set_mtime*(directory: notmuch_directory_t; mtime: time_t): notmuch_status_t {.importc: "notmuch_directory_set_mtime".}
 ## *
 ##  Get the mtime of a directory, (as previously stored with
 ##  notmuch_directory_set_mtime).
@@ -1964,8 +1906,7 @@ proc notmuch_directory_set_mtime*(directory: ptr notmuch_directory_t; mtime: tim
 ##  directory.
 ##
 
-proc notmuch_directory_get_mtime*(directory: ptr notmuch_directory_t): time_t {.
-    importc: "notmuch_directory_get_mtime", header: "notmuch.h".}
+proc get_mtime*(directory: notmuch_directory_t): time_t {.importc: "notmuch_directory_get_mtime".}
 ## *
 ##  Get a notmuch_filenames_t iterator listing all the filenames of
 ##  messages in the database within the given directory.
@@ -1974,8 +1915,7 @@ proc notmuch_directory_get_mtime*(directory: ptr notmuch_directory_t): time_t {.
 ##  complete paths).
 ##
 
-proc notmuch_directory_get_child_files*(directory: ptr notmuch_directory_t): ptr notmuch_filenames_t {.
-    importc: "notmuch_directory_get_child_files", header: "notmuch.h".}
+proc directory_get_child_files*(directory: notmuch_directory_t): notmuch_filenames_t {.importc: "notmuch_directory_get_child_files".}
 ## *
 ##  Get a notmuch_filenames_t iterator listing all the filenames of
 ##  sub-directories in the database within the given directory.
@@ -1984,8 +1924,7 @@ proc notmuch_directory_get_child_files*(directory: ptr notmuch_directory_t): ptr
 ##  complete paths).
 ##
 
-proc notmuch_directory_get_child_directories*(directory: ptr notmuch_directory_t): ptr notmuch_filenames_t {.
-    importc: "notmuch_directory_get_child_directories", header: "notmuch.h".}
+proc get_child_directories*(directory: notmuch_directory_t): notmuch_filenames_t {.importc: "notmuch_directory_get_child_directories".}
 ## *
 ##  Delete directory document from the database, and destroy the
 ##  notmuch_directory_t object. Assumes any child directories and files
@@ -1994,14 +1933,12 @@ proc notmuch_directory_get_child_directories*(directory: ptr notmuch_directory_t
 ##  @since libnotmuch 4.3 (notmuch 0.21)
 ##
 
-proc notmuch_directory_delete*(directory: ptr notmuch_directory_t): notmuch_status_t {.
-    importc: "notmuch_directory_delete", header: "notmuch.h".}
+proc delete*(directory: notmuch_directory_t): notmuch_status_t {.importc: "notmuch_directory_delete".}
 ## *
 ##  Destroy a notmuch_directory_t object.
 ##
 
-proc notmuch_directory_destroy*(directory: ptr notmuch_directory_t) {.
-    importc: "notmuch_directory_destroy", header: "notmuch.h".}
+proc destroy*(directory: notmuch_directory_t) {.importc: "notmuch_directory_destroy".}
 ## *
 ##  Is the given 'filenames' iterator pointing at a valid filename.
 ##
@@ -2013,8 +1950,7 @@ proc notmuch_directory_destroy*(directory: ptr notmuch_directory_t) {.
 ##  function will always return FALSE.
 ##
 
-proc notmuch_filenames_valid*(filenames: ptr notmuch_filenames_t): notmuch_bool_t {.
-    importc: "notmuch_filenames_valid", header: "notmuch.h".}
+proc valid*(filenames: notmuch_filenames_t): notmuch_bool_t {.importc: "notmuch_filenames_valid".}
 ## *
 ##  Get the current filename from 'filenames' as a string.
 ##
@@ -2025,8 +1961,7 @@ proc notmuch_filenames_valid*(filenames: ptr notmuch_filenames_t): notmuch_bool_
 ##  function will always return NULL.
 ##
 
-proc notmuch_filenames_get*(filenames: ptr notmuch_filenames_t): cstring {.
-    importc: "notmuch_filenames_get", header: "notmuch.h".}
+proc get*(filenames: notmuch_filenames_t): cstring {.importc: "notmuch_filenames_get".}
 ## *
 ##  Move the 'filenames' iterator to the next filename.
 ##
@@ -2039,8 +1974,13 @@ proc notmuch_filenames_get*(filenames: ptr notmuch_filenames_t): cstring {.
 ##  function will do nothing.
 ##
 
-proc notmuch_filenames_move_to_next*(filenames: ptr notmuch_filenames_t) {.
-    importc: "notmuch_filenames_move_to_next", header: "notmuch.h".}
+proc move_to_next*(filenames: notmuch_filenames_t) {.importc: "notmuch_filenames_move_to_next".}
+
+iterator items*(iter: notmuch_filenames_t): cstring =
+  while iter.valid() == 1:
+    yield iter.get()
+    iter.move_to_next()
+
 ## *
 ##  Destroy a notmuch_filenames_t object.
 ##
@@ -2052,17 +1992,14 @@ proc notmuch_filenames_move_to_next*(filenames: ptr notmuch_filenames_t) {.
 ##  function will do nothing.
 ##
 
-proc notmuch_filenames_destroy*(filenames: ptr notmuch_filenames_t) {.
-    importc: "notmuch_filenames_destroy", header: "notmuch.h".}
+proc destroy*(filenames: notmuch_filenames_t) {.importc: "notmuch_filenames_destroy".}
 ## *
 ##  set config 'key' to 'value'
 ##
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_database_set_config*(db: ptr notmuch_database_t; key: cstring;
-                                 value: cstring): notmuch_status_t {.
-    importc: "notmuch_database_set_config", header: "notmuch.h".}
+proc set_config*(db: notmuch_database_t; key: cstring; value: cstring): notmuch_status_t {.importc: "notmuch_database_set_config".}
 ## *
 ##  retrieve config item 'key', assign to  'value'
 ##
@@ -2075,26 +2012,21 @@ proc notmuch_database_set_config*(db: ptr notmuch_database_t; key: cstring;
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_database_get_config*(db: ptr notmuch_database_t; key: cstring;
-                                 value: cstringArray): notmuch_status_t {.
-    importc: "notmuch_database_get_config", header: "notmuch.h".}
+proc get_config*(db: notmuch_database_t; key: cstring; value: ptr cstring): notmuch_status_t {.importc: "notmuch_database_get_config".}
 ## *
 ##  Create an iterator for all config items with keys matching a given prefix
 ##
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_database_get_config_list*(db: ptr notmuch_database_t; prefix: cstring;
-                                      `out`: ptr ptr notmuch_config_list_t): notmuch_status_t {.
-    importc: "notmuch_database_get_config_list", header: "notmuch.h".}
+proc get_config_list*(db: notmuch_database_t; prefix: cstring; `out`: ptr notmuch_config_list_t): notmuch_status_t {.importc: "notmuch_database_get_config_list".}
 ## *
 ##  Is 'config_list' iterator valid (i.e. _key, _value, _move_to_next can be called).
 ##
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_config_list_valid*(config_list: ptr notmuch_config_list_t): notmuch_bool_t {.
-    importc: "notmuch_config_list_valid", header: "notmuch.h".}
+proc valid*(config_list: notmuch_config_list_t): notmuch_bool_t {.importc: "notmuch_config_list_valid".}
 ## *
 ##  return key for current config pair
 ##
@@ -2104,8 +2036,7 @@ proc notmuch_config_list_valid*(config_list: ptr notmuch_config_list_t): notmuch
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_config_list_key*(config_list: ptr notmuch_config_list_t): cstring {.
-    importc: "notmuch_config_list_key", header: "notmuch.h".}
+proc key*(config_list: notmuch_config_list_t): cstring {.importc: "notmuch_config_list_key".}
 ## *
 ##  return 'value' for current config pair
 ##
@@ -2115,24 +2046,37 @@ proc notmuch_config_list_key*(config_list: ptr notmuch_config_list_t): cstring {
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_config_list_value*(config_list: ptr notmuch_config_list_t): cstring {.
-    importc: "notmuch_config_list_value", header: "notmuch.h".}
+proc value*(config_list: notmuch_config_list_t): cstring {.importc: "notmuch_config_list_value".}
 ## *
 ##  move 'config_list' iterator to the next pair
 ##
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_config_list_move_to_next*(config_list: ptr notmuch_config_list_t) {.
-    importc: "notmuch_config_list_move_to_next", header: "notmuch.h".}
+proc move_to_next*(config_list: notmuch_config_list_t) {.importc: "notmuch_config_list_move_to_next".}
+
+iterator pairs*(iter: notmuch_config_list_t): (cstring, cstring) =
+  while iter.valid() == 1:
+    yield (iter.key(), iter.value())
+    iter.move_to_next()
+
+iterator keys*(iter: notmuch_config_list_t): cstring =
+  while iter.valid() == 1:
+    yield iter.key()
+    iter.move_to_next()
+
+iterator values*(iter: notmuch_config_list_t): cstring =
+  while iter.valid() == 1:
+    yield iter.value()
+    iter.move_to_next()
+
 ## *
 ##  free any resources held by 'config_list'
 ##
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_config_list_destroy*(config_list: ptr notmuch_config_list_t) {.
-    importc: "notmuch_config_list_destroy", header: "notmuch.h".}
+proc destroy*(config_list: notmuch_config_list_t) {.importc: "notmuch_config_list_destroy".}
 ## *
 ##  get the current default indexing options for a given database.
 ##
@@ -2146,8 +2090,7 @@ proc notmuch_config_list_destroy*(config_list: ptr notmuch_config_list_t) {.
 ##  @since libnotmuch 5.1 (notmuch 0.26)
 ##
 
-proc notmuch_database_get_default_indexopts*(db: ptr notmuch_database_t): ptr notmuch_indexopts_t {.
-    importc: "notmuch_database_get_default_indexopts", header: "notmuch.h".}
+proc get_default_indexopts*(db: notmuch_database_t): notmuch_indexopts_t {.importc: "notmuch_database_get_default_indexopts".}
 ## *
 ##  Stating a policy about how to decrypt messages.
 ##
@@ -2156,9 +2099,10 @@ proc notmuch_database_get_default_indexopts*(db: ptr notmuch_database_t): ptr no
 
 type
   notmuch_decryption_policy_t* {.size: sizeof(cint).} = enum
-    NOTMUCH_DECRYPT_FALSE, NOTMUCH_DECRYPT_TRUE, NOTMUCH_DECRYPT_AUTO,
+    NOTMUCH_DECRYPT_FALSE,
+    NOTMUCH_DECRYPT_TRUE,
+    NOTMUCH_DECRYPT_AUTO,
     NOTMUCH_DECRYPT_NOSTASH
-
 
 ## *
 ##  Specify whether to decrypt encrypted parts while indexing.
@@ -2171,9 +2115,7 @@ type
 ##  @since libnotmuch 5.1 (notmuch 0.26)
 ##
 
-proc notmuch_indexopts_set_decrypt_policy*(indexopts: ptr notmuch_indexopts_t;
-    decrypt_policy: notmuch_decryption_policy_t): notmuch_status_t {.
-    importc: "notmuch_indexopts_set_decrypt_policy", header: "notmuch.h".}
+proc set_decrypt_policy*(indexopts: notmuch_indexopts_t; decrypt_policy: notmuch_decryption_policy_t): notmuch_status_t {.importc: "notmuch_indexopts_set_decrypt_policy".}
 ## *
 ##  Return whether to decrypt encrypted parts while indexing.
 ##  see notmuch_indexopts_set_decrypt_policy.
@@ -2181,22 +2123,21 @@ proc notmuch_indexopts_set_decrypt_policy*(indexopts: ptr notmuch_indexopts_t;
 ##  @since libnotmuch 5.1 (notmuch 0.26)
 ##
 
-proc notmuch_indexopts_get_decrypt_policy*(indexopts: ptr notmuch_indexopts_t): notmuch_decryption_policy_t {.
-    importc: "notmuch_indexopts_get_decrypt_policy", header: "notmuch.h".}
+proc get_decrypt_policy*(indexopts: notmuch_indexopts_t): notmuch_decryption_policy_t {.importc: "notmuch_indexopts_get_decrypt_policy".}
 ## *
 ##  Destroy a notmuch_indexopts_t object.
 ##
 ##  @since libnotmuch 5.1 (notmuch 0.26)
 ##
 
-proc notmuch_indexopts_destroy*(options: ptr notmuch_indexopts_t) {.
-    importc: "notmuch_indexopts_destroy", header: "notmuch.h".}
+proc destroy*(options: notmuch_indexopts_t) {.importc: "notmuch_indexopts_destroy".}
 ## *
 ##  interrogate the library for compile time features
 ##
 ##  @since libnotmuch 4.4 (notmuch 0.23)
 ##
 
-proc notmuch_built_with*(name: cstring): notmuch_bool_t {.
-    importc: "notmuch_built_with", header: "notmuch.h".}
+proc built_with*(name: cstring): notmuch_bool_t {.importc: "notmuch_built_with".}
+
+{.pop.}
 ##  @}
